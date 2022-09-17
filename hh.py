@@ -1,4 +1,5 @@
 import os
+import sys
 from time import sleep
 from typing import Optional
 import requests
@@ -7,70 +8,59 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Singleton(type):
-    _instances = {}
+def get_tokens(code: str) -> dict:
+    response = requests.post(url=token_url, data={"grant_type": "authorization_code",
+                                                  "client_id": client_id,
+                                                  "client_secret": client_secret,
+                                                  "code": code})
 
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception("Failed to get tokens. Status code: ", response.status_code)
 
 
-class HHResumeUpdater(metaclass=Singleton):
-    redirect_url = os.getenv('REDIRECT_URL')
-    resume_id = os.getenv('RESUME_ID')
-    client_id = os.getenv('CLIENT_ID')
-    client_secret = os.getenv('CLIENT_SECRET')
-    client_code = os.getenv('CLIENT_CODE')
+def refresh_access_token(refresh_token: str) -> dict:
+    response = requests.post(url=token_url, data={"grant_type": "refresh_token",
+                                                  "refresh_token": refresh_token})
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception("Failed to refresh token. Status code: ", response.status_code)
 
-    """
-    Todo:
-    Implement get_code()
-    """
 
-    def get_code(self):
-        url = f"https://hh.ru/oauth/authorize?response_type=code&client_id={self.client_id}"
-        response = requests.get(url=url)
-        print("Response text: \n", response.text)
-        print("Response url: \n", response.url)
+def update(access_token: str):
+    headers = {'Authorization': 'Bearer ' + access_token}
+    response = requests.post(url=update_resume_url, headers=headers)
+    return response.status_code
 
-    def authenticate(self) -> dict:
-        url = "https://hh.ru/oauth/token"
 
-        response = requests.post(url=url, data={"grant_type": "authorization_code",
-                                                "client_id": self.client_id,
-                                                "client_secret": self.client_secret,
-                                                "code": self.client_code})
-
-        if response.status_code == 200:
-            return response.json()
-
-        print("Response text", response.text)
-        print("Response code", response.status_code)
-
-    def update_resume(self, access_token: str):
-        url = f"https://api.hh.ru/resumes/{self.resume_id}/publish"
-        headers = {'Authorization': 'Bearer ' + access_token}
-
-        def update(sleep_time: Optional[int] = 0) -> None:
-            sleep(sleep_time)
-            response = requests.post(url=url, headers=headers)
-            if response.status_code == 200:
-                print('Success: ', 'Resume was updated')
-                update(60 * 60 * 4 + 60 * 1)
-            if response.status_code == 429:
-                print('Error: ', 'You are trying to update your resume too often')
-                update(10 * 60)
-            if response.status_code == 403:
-                print('Error: ', 'Token TTL has expired. Get a new token')
-                exit(1)
-
-        update()
+def update_resume(sleep_time: Optional[int] = 0, **kwargs):
+    sleep(sleep_time)
+    response_code = update(kwargs['access_token'])
+    if response_code == 200:
+        print('Success: Resume was updated')
+        update_resume(sleep_time=60 * 60 * 4 + 60 * 1, **kwargs)
+    if response_code == 429:
+        print('Error: You are trying to update your resume too often')
+        update_resume(1, **kwargs)
+    if response_code == 403:
+        print('Error: Token TTL has expired. Get a new token')
+        refreshed = refresh_access_token(kwargs['refresh_token'])
+        update_resume(**refreshed)
+    raise Exception("Failed to update resume. Status code: ", response_code)
 
 
 if __name__ == '__main__':
-    updater = HHResumeUpdater()
     try:
-        updater.get_code()
+        redirect_url = os.getenv('REDIRECT_URL')
+        client_id = os.getenv('CLIENT_ID')
+        client_secret = os.getenv('CLIENT_SECRET')
+        update_resume_url = f"https://api.hh.ru/resumes/{sys.argv[1]}/publish"
+        token_url = "https://hh.ru/oauth/token"
+
+        tokens = get_tokens(code=sys.argv[2])
+        update_resume(**tokens)
+
     except Exception as e:
         print(f"Caught Exception: {e}")
