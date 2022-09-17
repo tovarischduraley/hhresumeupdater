@@ -43,12 +43,13 @@ def update_resume(sleep_time: Optional[int] = 0, **kwargs):
         update_resume(sleep_time=60 * 60 * 4 + 60 * 1, **kwargs)
     if response_code == 429:
         print('Error: You are trying to update your resume too often')
-        update_resume(1, **kwargs)
+        update_resume(60 * 10, **kwargs)
     if response_code == 403:
         print('Error: Token TTL has expired. Get a new token')
         refreshed = refresh_access_token(kwargs['refresh_token'])
         update_resume(**refreshed)
-    raise Exception("Failed to update resume. Status code: ", response_code)
+    else:
+        raise Exception("Failed to update resume. Status code: ", response_code)
 
 
 if __name__ == '__main__':
