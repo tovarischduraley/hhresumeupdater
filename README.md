@@ -4,7 +4,7 @@
 
 1. Install dependencies
 ```bash
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 2. Create .env file
 3. Place hhapp consts to .env file
