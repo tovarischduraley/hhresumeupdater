@@ -36,7 +36,9 @@ def update(access_token: str):
 
 
 def update_resume(sleep_time: Optional[int] = 0, **kwargs):
-    sleep(sleep_time)
+    if sleep_time:
+        print("Sleep for ", sleep_time)
+        sleep(sleep_time)
     response_code = update(kwargs['access_token'])
     if response_code == 200:
         print('Success: Resume was updated')
