@@ -29,7 +29,7 @@ def refresh_access_token(refresh_token: str) -> dict:
         raise Exception("Failed to refresh token. Status code: ", response.status_code)
 
 
-def update(access_token: str):
+def update(access_token: str) -> int:
     headers = {'Authorization': 'Bearer ' + access_token}
     response = requests.post(url=update_resume_url, headers=headers)
     return response.status_code
@@ -50,8 +50,8 @@ def update_resume(sleep_time: Optional[int] = 0, **kwargs):
         print('Error: Token TTL has expired. Get a new token')
         refreshed = refresh_access_token(kwargs['refresh_token'])
         update_resume(**refreshed)
-    else:
-        raise Exception("Failed to update resume. Status code: ", response_code)
+
+    raise Exception("Failed to update resume. Status code: ", response_code)
 
 
 if __name__ == '__main__':
