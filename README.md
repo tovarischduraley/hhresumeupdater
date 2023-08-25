@@ -3,7 +3,7 @@
 ## Set up ##
 
 1. Create HH App ([link](https://dev.hh.ru/admin/))
-2. Autorize in https://hh.ru/oauth/authorize?response_type=code&client_id=<YOUR_CLIENT_ID>
+2. Authorize in https://hh.ru/oauth/authorize?response_type=code&client_id=<YOUR_CLIENT_ID>
 3. Get CODE from URL after login
 4. Create .env file with following variables
 ```
