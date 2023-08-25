@@ -1,0 +1,7 @@
+services:
+  app:
+    build: .
+    stdin_open: true
+    tty: true
+    command: python -u ./app/main.py ${RESUMES_IDS}
+    env_file: .env
